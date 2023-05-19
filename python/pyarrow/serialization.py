@@ -459,7 +459,7 @@ def _register_default_serialization_handlers(serialization_context):
         type(lambda: 0), "function",
         pickle=True)
 
-    serialization_context.register_type(type, "type", pickle=True)
+    serialization_context.register_type(object, "object", pickle=True)
 
     serialization_context.register_type(
         np.matrix, 'np.matrix',

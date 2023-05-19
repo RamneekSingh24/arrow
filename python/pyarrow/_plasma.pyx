@@ -102,7 +102,7 @@ cdef extern from "plasma/client.h" nogil:
 
         CStatus Create(const CUniqueID& object_id,
                        int64_t data_size, const uint8_t* metadata, int64_t
-                       metadata_size, const shared_ptr[CBuffer]* data)
+                       metadata_size, const shared_ptr[CBuffer]* data, int32_t device_num)
 
         CStatus CreateAndSeal(const CUniqueID& object_id,
                               const c_string& data, const c_string& metadata)
@@ -352,7 +352,7 @@ cdef class PlasmaClient(_Weakrefable):
         return self.store_socket_name.decode()
 
     def create(self, ObjectID object_id, int64_t data_size,
-               c_string metadata=b""):
+               c_string metadata=b"", int32_t device_num=0):
         """
         Create a new buffer in the PlasmaStore for a particular object ID.
 
@@ -389,10 +389,20 @@ cdef class PlasmaClient(_Weakrefable):
             plasma_check_status(
                 self.client.get().Create(object_id.data, data_size,
                                          <uint8_t*>(metadata.data()),
-                                         metadata.size(), &data))
-        return self._make_mutable_plasma_buffer(object_id,
-                                                data.get().mutable_data(),
-                                                data_size)
+                                         metadata.size(), &data, device_num))
+        
+        cdef PlasmaBuffer plasma_buffer
+        # cdef bool cpu = 0;
+
+        if device_num == 0:
+            plasma_buffer = self._make_mutable_plasma_buffer(object_id,
+                                                    data.get().mutable_data(),
+                                                    data_size)
+        else:
+            # TODO why do we even need _make_mutable_plasma_buffer ? 
+            plasma_buffer = PlasmaBuffer.create(object_id, self, data)
+
+        return plasma_buffer
 
     def create_and_seal(self, ObjectID object_id, c_string data,
                         c_string metadata=b""):
